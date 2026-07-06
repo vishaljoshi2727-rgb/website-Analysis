@@ -1,1 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
 
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Website Analyzer</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Website Analyzer</h1>
+
+    <div class="search-box">
+
+        <input
+            type="text"
+            id="websiteUrl"
+            placeholder="Enter website URL..."
+        >
+
+        <button onclick="analyzeWebsite()">
+            Analyze
+        </button>
+
+    </div>
+
+    <div id="loader" class="loader hidden"></div>
+
+    <div id="result" class="result hidden">
+
+        <h2>Analysis Report</h2>
+
+        <div class="card">
+            <h3>Website Type</h3>
+            <p id="website_type"></p>
+        </div>
+
+        <div class="card">
+            <h3>Title</h3>
+            <p id="title"></p>
+        </div>
+
+        <div class="card">
+            <h3>Meta Description</h3>
+            <p id="meta_description"></p>
+        </div>
+
+        <div class="card">
+            <h3>Website Tone</h3>
+            <p id="tone"></p>
+        </div>
+
+        <div class="stats">
+
+            <div class="stat-box">
+                <h3 id="links">0</h3>
+                <p>Links</p>
+            </div>
+
+            <div class="stat-box">
+                <h3 id="images">0</h3>
+                <p>Images</p>
+            </div>
+
+            <div class="stat-box">
+                <h3 id="forms">0</h3>
+                <p>Forms</p>
+            </div>
+
+        </div>
+
+        <div class="card">
+            <h3>Content Preview</h3>
+            <p id="preview"></p>
+        </div>
+
+        <div class="card conclusion">
+            <h3>Overall Conclusion</h3>
+            <p id="conclusion"></p>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
