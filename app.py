@@ -1,3 +1,22 @@
+# ==============================================================================
+# GUNICORN CONFIGURATION EMBEDDED
+# ==============================================================================
+# To run this file in production with Gunicorn, use the following terminal command:
+#
+# gunicorn --workers 3 --worker-class gevent --timeout 30 convert:app
+#
+# Make sure you have installed the asynchronous dependencies first:
+# pip install gunicorn gevent
+# ==============================================================================
+
+# gevent monkey patching must happen BEFORE importing requests or any other IO library
+# This ensures synchronous libraries (like requests) behave asynchronously under Gunicorn
+try:
+    from gevent import monkey
+    monkey.patch_all()
+except ImportError:
+    pass
+
 from flask import Flask, render_template, request, jsonify
 import requests
 from bs4 import BeautifulSoup
@@ -13,9 +32,7 @@ app = Flask(__name__)
 # ============================================
 
 def get_website_data(url):
-
     try:
-
         headers = {
             "User-Agent": "Mozilla/5.0"
         }
@@ -40,492 +57,173 @@ def get_website_data(url):
 # ============================================
 
 def clean_text(text):
-
     text = re.sub(r"\s+", " ", text)
-
     return text.strip()
+
 
 # ============================================
 # ADVANCED WEBSITE TYPE DETECTION
 # ============================================
 
 def detect_website_type(text, title, meta_description, url):
-
     content = f"{title} {meta_description} {text}".lower()
-
     domain = urlparse(url).netloc.lower()
 
     website_categories = {
-
-        # -----------------------------------
-        # SEARCH ENGINES
-        # -----------------------------------
-
         "Search Engine": [
-            "search", "web results",
-            "images", "videos",
-            "maps", "search engine",
-            "find results"
+            "search", "web results", "images", "videos",
+            "maps", "search engine", "find results"
         ],
-
-        # -----------------------------------
-        # SOCIAL MEDIA
-        # -----------------------------------
-
         "Social Media Website": [
-            "followers", "following",
-            "like", "share",
-            "comment", "post",
-            "stories", "reels",
+            "followers", "following", "like", "share",
+            "comment", "post", "stories", "reels",
             "chat", "messaging"
         ],
-
-        # -----------------------------------
-        # VIDEO / OTT
-        # -----------------------------------
-
         "Video Streaming Website": [
-            "watch video", "streaming",
-            "movies", "tv shows",
-            "episodes", "live streaming",
-            "watch online"
+            "watch video", "streaming", "movies", "tv shows",
+            "episodes", "live streaming", "watch online"
         ],
-
-        # -----------------------------------
-        # MUSIC
-        # -----------------------------------
-
         "Music Platform": [
-            "music", "playlist",
-            "listen", "album",
-            "artist", "songs",
-            "podcast"
+            "music", "playlist", "listen", "album",
+            "artist", "songs", "podcast"
         ],
-
-        # -----------------------------------
-        # EDUCATION
-        # -----------------------------------
-
         "Education Website": [
-            "course", "tutorial",
-            "learn", "training",
-            "academy", "university",
-            "student", "education",
+            "course", "tutorial", "learn", "training",
+            "academy", "university", "student", "education",
             "certification", "classes"
         ],
-
-        # -----------------------------------
-        # CODING
-        # -----------------------------------
-
         "Coding & Developer Website": [
-            "repository", "developer",
-            "api", "documentation",
-            "open source", "programming",
-            "software", "code editor",
+            "repository", "developer", "api", "documentation",
+            "open source", "programming", "software", "code editor",
             "debugging"
         ],
-
-        # -----------------------------------
-        # SHOPPING
-        # -----------------------------------
-
         "E-Commerce Website": [
-            "buy now", "checkout",
-            "shopping cart", "wishlist",
-            "product", "offers",
-            "discount", "shop",
-            "order now"
+            "buy now", "checkout", "shopping cart", "wishlist",
+            "product", "offers", "discount", "shop", "order now"
         ],
-
-        # -----------------------------------
-        # AI
-        # -----------------------------------
-
         "AI Website": [
-            "artificial intelligence",
-            "machine learning",
-            "chatbot", "llm",
-            "generate text",
-            "generate image",
-            "ai assistant",
-            "deep learning"
+            "artificial intelligence", "machine learning",
+            "chatbot", "llm", "generate text", "generate image",
+            "ai assistant", "deep learning"
         ],
-
-        # -----------------------------------
-        # NEWS
-        # -----------------------------------
-
         "News Website": [
-            "breaking news",
-            "headlines",
-            "world news",
-            "latest news",
-            "journal",
-            "politics"
+            "breaking news", "headlines", "world news",
+            "latest news", "journal", "politics"
         ],
-
-        # -----------------------------------
-        # BLOG
-        # -----------------------------------
-
         "Blog Website": [
-            "blog", "read article",
-            "posted by",
-            "comments",
-            "author"
+            "blog", "read article", "posted by", "comments", "author"
         ],
-
-        # -----------------------------------
-        # FORUM
-        # -----------------------------------
-
         "Forum Website": [
-            "discussion",
-            "community",
-            "threads",
-            "forum",
-            "reply"
+            "discussion", "community", "threads", "forum", "reply"
         ],
-
-        # -----------------------------------
-        # BUSINESS
-        # -----------------------------------
-
         "Business Website": [
-            "our services",
-            "company",
-            "solutions",
-            "clients",
-            "business",
-            "enterprise"
+            "our services", "company", "solutions",
+            "clients", "business", "enterprise"
         ],
-
-        # -----------------------------------
-        # WEB APPLICATION
-        # -----------------------------------
-
         "Web Application": [
-            "dashboard",
-            "sign in",
-            "login",
-            "workspace",
-            "admin panel"
+            "dashboard", "sign in", "login", "workspace", "admin panel"
         ],
-
-        # -----------------------------------
-        # BANKING
-        # -----------------------------------
-
         "Banking Website": [
-            "bank", "loan",
-            "credit card",
-            "account",
-            "transaction",
-            "net banking"
+            "bank", "loan", "credit card", "account",
+            "transaction", "net banking"
         ],
-
-        # -----------------------------------
-        # FINANCE
-        # -----------------------------------
-
         "Finance Website": [
-            "investment",
-            "stock market",
-            "finance",
-            "trading",
-            "mutual fund"
+            "investment", "stock market", "finance",
+            "trading", "mutual fund"
         ],
-
-        # -----------------------------------
-        # CRYPTO
-        # -----------------------------------
-
         "Cryptocurrency Website": [
-            "crypto",
-            "bitcoin",
-            "blockchain",
-            "wallet",
-            "token"
+            "crypto", "bitcoin", "blockchain", "wallet", "token"
         ],
-
-        # -----------------------------------
-        # TRAVEL
-        # -----------------------------------
-
         "Travel Website": [
-            "hotel", "flight",
-            "booking",
-            "vacation",
-            "tour",
-            "destination"
+            "hotel", "flight", "booking", "vacation",
+            "tour", "destination"
         ],
-
-        # -----------------------------------
-        # HEALTHCARE
-        # -----------------------------------
-
         "Healthcare Website": [
-            "doctor",
-            "hospital",
-            "patient",
-            "medical",
-            "clinic",
-            "treatment"
+            "doctor", "hospital", "patient", "medical",
+            "clinic", "treatment"
         ],
-
-        # -----------------------------------
-        # FOOD DELIVERY
-        # -----------------------------------
-
         "Food Delivery Website": [
-            "restaurant",
-            "food delivery",
-            "menu",
-            "order food",
-            "dining"
+            "restaurant", "food delivery", "menu", "order food", "dining"
         ],
-
-        # -----------------------------------
-        # JOB PORTAL
-        # -----------------------------------
-
         "Job Portal": [
-            "jobs",
-            "career",
-            "vacancy",
-            "hiring",
-            "recruitment",
-            "apply now"
+            "jobs", "career", "vacancy", "hiring",
+            "recruitment", "apply now"
         ],
-
-        # -----------------------------------
-        # GAMING
-        # -----------------------------------
-
         "Gaming Website": [
-            "game",
-            "gaming",
-            "multiplayer",
-            "esports",
-            "play online"
+            "game", "gaming", "multiplayer", "esports", "play online"
         ],
-
-        # -----------------------------------
-        # SPORTS
-        # -----------------------------------
-
         "Sports Website": [
-            "live score",
-            "sports news",
-            "cricket",
-            "football",
-            "match"
+            "live score", "sports news", "cricket", "football", "match"
         ],
-
-        # -----------------------------------
-        # GOVERNMENT
-        # -----------------------------------
-
         "Government Website": [
-            "government",
-            "ministry",
-            "public services",
-            "citizen",
-            "official portal"
+            "government", "ministry", "public services",
+            "citizen", "official portal"
         ],
-
-        # -----------------------------------
-        # PORTFOLIO
-        # -----------------------------------
-
         "Portfolio Website": [
-            "portfolio",
-            "my projects",
-            "my work",
-            "case studies",
-            "designer"
+            "portfolio", "my projects", "my work",
+            "case studies", "designer"
         ],
-
-        # -----------------------------------
-        # PHOTOGRAPHY
-        # -----------------------------------
-
         "Photography Website": [
-            "gallery",
-            "photography",
-            "photos",
-            "albums",
-            "wedding shoots"
+            "gallery", "photography", "photos", "albums", "wedding shoots"
         ],
-
-        # -----------------------------------
-        # WIKI
-        # -----------------------------------
-
         "Wiki Website": [
-            "encyclopedia",
-            "wiki",
-            "knowledge base",
-            "history"
+            "encyclopedia", "wiki", "knowledge base", "history"
         ],
-
-        # -----------------------------------
-        # FILE SHARING
-        # -----------------------------------
-
         "File Sharing Website": [
-            "upload",
-            "download",
-            "share files",
-            "cloud storage"
+            "upload", "download", "share files", "cloud storage"
         ],
-
-        # -----------------------------------
-        # CLOUD PLATFORM
-        # -----------------------------------
-
-        "Cloud Platform": [
-            "cloud",
-            "virtual server",
-            "hosting",
-            "deploy",
-            "infrastructure"
-        ],
-
-        # -----------------------------------
-        # CYBERSECURITY
-        # -----------------------------------
-
-        "Cybersecurity Website": [
-            "security",
-            "vpn",
-            "encryption",
-            "cybersecurity",
-            "firewall"
-        ]
+        "Cloud Platform": ["cloud", "virtual server", "hosting", "deploy", "infrastructure"],
+        "Cybersecurity Website": ["security", "vpn", "encryption", "cybersecurity", "firewall"]
     }
 
     # =====================================
     # SCORING
     # =====================================
-
     scores = {}
 
     for category, keywords in website_categories.items():
-
         score = 0
-
         for keyword in keywords:
-
             if keyword in content:
                 score += 1
-
         scores[category] = score
 
     # =====================================
     # DOMAIN BASED DETECTION
     # =====================================
-
     domain_rules = {
-
-        "Search Engine": [
-            "google", "bing",
-            "yahoo", "duckduckgo"
-        ],
-
-        "Social Media Website": [
-            "facebook", "instagram",
-            "twitter", "linkedin",
-            "snapchat", "pinterest"
-        ],
-
-        "Video Streaming Website": [
-            "youtube", "netflix",
-            "primevideo",
-            "hotstar",
-            "vimeo"
-        ],
-
-        "Music Platform": [
-            "spotify", "soundcloud",
-            "gaana", "wynk"
-        ],
-
-        "Education Website": [
-            "coursera", "udemy",
-            "khanacademy",
-            "w3schools"
-        ],
-
-        "Coding & Developer Website": [
-            "github", "gitlab",
-            "stackoverflow",
-            "replit",
-            "codepen"
-        ],
-
-        "E-Commerce Website": [
-            "amazon", "flipkart",
-            "myntra", "ebay",
-            "shopify"
-        ],
-
-        "AI Website": [
-            "openai", "chatgpt",
-            "claude",
-            "gemini",
-            "perplexity"
-        ],
-
-        "News Website": [
-            "bbc", "cnn",
-            "ndtv",
-            "timesofindia"
-        ],
-
-        "Travel Website": [
-            "booking", "makemytrip",
-            "airbnb", "tripadvisor"
-        ],
-
-        "Food Delivery Website": [
-            "zomato", "swiggy"
-        ],
-
-        "Job Portal": [
-            "linkedin", "indeed",
-            "naukri"
-        ],
-
-        "Gaming Website": [
-            "steam", "epicgames"
-        ],
-
-        "Wiki Website": [
-            "wikipedia"
-        ],
-
-        "Cloud Platform": [
-            "aws", "azure",
-            "digitalocean"
-        ]
+        "Search Engine": ["google", "bing", "yahoo", "duckduckgo"],
+        "Social Media Website": ["facebook", "instagram", "twitter", "linkedin", "snapchat", "pinterest"],
+        "Video Streaming Website": ["youtube", "netflix", "primevideo", "hotstar", "vimeo"],
+        "Music Platform": ["spotify", "soundcloud", "gaana", "wynk"],
+        "Education Website": ["coursera", "udemy", "khanacademy", "w3schools"],
+        "Coding & Developer Website": ["github", "gitlab", "stackoverflow", "replit", "codepen"],
+        "E-Commerce Website": ["amazon", "flipkart", "myntra", "ebay", "shopify"],
+        "AI Website": ["openai", "chatgpt", "claude", "gemini", "perplexity"],
+        "News Website": ["bbc", "cnn", "ndtv", "timesofindia"],
+        "Travel Website": ["booking", "makemytrip", "airbnb", "tripadvisor"],
+        "Food Delivery Website": ["zomato", "swiggy"],
+        "Job Portal": ["linkedin", "indeed", "naukri"],
+        "Gaming Website": ["steam", "epicgames"],
+        "Wiki Website": ["wikipedia"],
+        "Cloud Platform": ["aws", "azure", "digitalocean"]
     }
 
     for category, domains in domain_rules.items():
-
         if any(x in domain for x in domains):
             scores[category] += 6
 
-# =====================================
-# BEST MATCH
-# =====================================
+    # =====================================
+    # BEST MATCH
+    # =====================================
     best_category = max(scores, key=scores.get)
 
     if scores[best_category] == 0:
         return "General Website"
 
     return best_category
+
+
 # ============================================
 # HOME PAGE
 # ============================================
@@ -541,11 +239,8 @@ def home():
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-
     try:
-
         data = request.get_json()
-
         website_url = data.get("url")
 
         if not website_url.startswith("http"):
@@ -564,18 +259,14 @@ def analyze():
             tag.extract()
 
         title = soup.title.string.strip() if soup.title else "No Title"
-
         meta_description = ""
-
         desc_tag = soup.find("meta", attrs={"name": "description"})
 
         if desc_tag and desc_tag.get("content"):
             meta_description = desc_tag["content"]
 
         text = soup.get_text()
-
         text = clean_text(text)
-
         short_text = text[:5000]
 
         website_type = detect_website_type(
@@ -610,7 +301,6 @@ def analyze():
         )
 
         return jsonify({
-
             "url": website_url,
             "website_type": website_type,
             "title": title,
@@ -621,18 +311,16 @@ def analyze():
             "forms": total_forms,
             "preview": short_text[:1000],
             "conclusion": conclusion
-
         })
 
     except Exception as e:
-
         return jsonify({
             "error": str(e)
         })
 
 
 # ============================================
-# RUN APP
+# RUN APP (Local Development Only)
 # ============================================
 
 if __name__ == "__main__":
